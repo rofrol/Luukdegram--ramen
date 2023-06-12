@@ -37,7 +37,7 @@ fn toIPSlice(buffer: []u8, bytes: *const [4]u8) ![]const u8 {
     std.debug.assert(buffer.len >= 16);
     var offset: usize = 0;
 
-    for (bytes) |b, i| {
+    for (bytes, 0..) |b, i| {
         offset += std.fmt.formatIntBuf(buffer[offset..], b, 10, false, .{});
 
         // Only add dots after a, b and c

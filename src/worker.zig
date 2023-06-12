@@ -11,7 +11,7 @@ const max_items = 5;
 /// most clients/servers report this as max block size (2^14)
 const max_block_size = 16384;
 
-fn compare(a: Work, b: Work) bool {
+fn compare(_: Work, _: Work) bool {
     return true;
 }
 

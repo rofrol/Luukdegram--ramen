@@ -10,7 +10,7 @@ pub fn Deserializer(comptime ReaderType: type) type {
         const Self = @This();
         /// Reader that is being read from while deserializing
         reader: ReaderType,
-        gpa: *Allocator,
+        gpa: Allocator,
         /// Last character that was read from the stream
         last_char: u8,
 
@@ -26,7 +26,7 @@ pub fn Deserializer(comptime ReaderType: type) type {
             list: []Value,
             dictionary: []Pair,
 
-            fn deinit(self: Value, gpa: *Allocator) void {
+            fn deinit(self: Value, gpa: Allocator) void {
                 switch (self) {
                     .bytes => |bytes| gpa.free(bytes),
                     .int => {},
@@ -45,7 +45,7 @@ pub fn Deserializer(comptime ReaderType: type) type {
             }
 
             /// Attempts to convert a `Value` into given zig type `T`
-            fn toZigType(self: Value, comptime T: type, gpa: *Allocator) Error!T {
+            fn toZigType(self: Value, comptime T: type, gpa: Allocator) Error!T {
                 if (T == []u8 or T == []const u8) return self.bytes;
                 switch (@typeInfo(T)) {
                     .Struct => {
@@ -91,7 +91,7 @@ pub fn Deserializer(comptime ReaderType: type) type {
             /// replaces '_' with a ' ' if needed as bencode allows keys to have spaces
             fn eql(field: []const u8, key: []const u8) bool {
                 if (field.len != key.len) return false;
-                return for (field) |c, i| {
+                return for (field, 0..) |c, i| {
                     if (c != key[i]) {
                         if (c == '_' and key[i] == ' ') continue;
                         break false;
@@ -100,7 +100,7 @@ pub fn Deserializer(comptime ReaderType: type) type {
             }
         };
 
-        pub fn init(gpa: *Allocator, reader: ReaderType) Self {
+        pub fn init(gpa: Allocator, reader: ReaderType) Self {
             return .{ .reader = reader, .gpa = gpa, .last_char = undefined };
         }
 
@@ -128,7 +128,7 @@ pub fn Deserializer(comptime ReaderType: type) type {
 
         fn deserializeValue(self: *Self) Error!Value {
             return switch (self.last_char) {
-                '0'...'9' => |c| Value{ .bytes = try self.deserializeBytes() },
+                '0'...'9' => |_| Value{ .bytes = try self.deserializeBytes() },
                 'i' => blk: {
                     try self.nextByte(); // skip 'i'
                     break :blk Value{ .int = try self.deserializeLength() };
@@ -202,7 +202,7 @@ pub fn Deserializer(comptime ReaderType: type) type {
 }
 
 /// Returns a new deserializer for the given `reader`
-pub fn deserializer(gpa: *Allocator, reader: anytype) Deserializer(@TypeOf(reader)) {
+pub fn deserializer(gpa: Allocator, reader: anytype) Deserializer(@TypeOf(reader)) {
     return Deserializer(@TypeOf(reader)).init(gpa, reader);
 }
 
@@ -256,7 +256,7 @@ pub fn Serializer(comptime WriterType: anytype) type {
         /// Encodes a field name to bencode field by replacing underscores to spaces
         fn encodeFieldName(comptime name: []const u8) [name.len]u8 {
             var result: [name.len]u8 = undefined;
-            for (name) |c, i| {
+            for (name, 0..) |c, i| {
                 const actual = if (c == '_') ' ' else c;
                 result[i] = actual;
             }

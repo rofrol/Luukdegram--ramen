@@ -23,7 +23,7 @@ pub fn download(self: Torrent, gpa: *std.mem.Allocator, path: []const u8) !void 
     defer work_pieces.deinit();
 
     // Creates jobs for all pieces that needs to be downloaded
-    for (self.file.piece_hashes) |hash, i| {
+    for (self.file.piece_hashes, 0..) |hash, i| {
         var index = @intCast(u32, i);
         work_pieces.appendAssumeCapacity(Work.init(index, hash, self.pieceSize(index), gpa));
     }

@@ -7,7 +7,7 @@ pub fn main() !void {
     defer _ = gpa.deinit();
 
     // arena for our args
-    var arena = std.heap.ArenaAllocator.init(&gpa.allocator);
+    var arena = std.heap.ArenaAllocator.init(gpa.allocator());
     defer arena.deinit();
 
     const std_in = std.io.getStdIn().writer();
@@ -15,17 +15,17 @@ pub fn main() !void {
     var file_path: ?[]const u8 = null;
     var dir_path: ?[]const u8 = null;
 
-    var args_iterator = std.process.ArgIterator.init();
+    var args_iterator = try std.process.argsWithAllocator(arena.allocator());
     var index: usize = 0;
-    while (args_iterator.next(&arena.allocator)) |maybe_arg| : (index += 1) {
-        const arg = maybe_arg catch continue;
+    while (args_iterator.next()) |arg| : (index += 1) {
         if (index == 1) {
             file_path = arg;
         }
 
         if (std.mem.eql(u8, arg, "-d")) {
-            if (args_iterator.next(&arena.allocator)) |maybe_dir_path| {
-                dir_path = maybe_dir_path catch continue;
+            if (args_iterator.next()) |maybe_dir_path| {
+                // dir_path = maybe_dir_path catch continue;
+                dir_path = maybe_dir_path;
             }
         }
     }
@@ -35,10 +35,11 @@ pub fn main() !void {
         return;
     };
 
-    var torrent = try TorrentFile.open(&gpa.allocator, path);
-    defer torrent.deinit(&gpa.allocator);
+    var torrent = try TorrentFile.open(gpa.allocator(), path);
 
-    torrent.download(&gpa.allocator, dir_path) catch |err| {
+    defer torrent.deinit(gpa.allocator());
+
+    torrent.download(gpa.allocator(), dir_path) catch |err| {
         std.debug.print("Could not download torrent: {s}\n", .{err});
         return err;
     };

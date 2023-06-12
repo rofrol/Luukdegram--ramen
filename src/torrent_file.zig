@@ -32,7 +32,7 @@ const Info = struct {
     pieces: []const u8,
 
     /// Generates a Sha1 hash of the info metadata.
-    fn hash(self: Info, gpa: *Allocator) ![20]u8 {
+    fn hash(self: Info, gpa: Allocator) ![20]u8 {
         // create arraylist for writer with some initial capacity to reduce allocation count
         var list = std.ArrayList(u8).init(gpa);
         defer list.deinit();
@@ -47,7 +47,7 @@ const Info = struct {
     }
 
     /// Retrieves the hashes of each individual piece
-    fn pieceHashes(self: Info, gpa: *Allocator) ![][20]u8 {
+    fn pieceHashes(self: Info, gpa: Allocator) ![][20]u8 {
         const hashes = self.pieces.len / 20; // 20 bytes per hash
         const buffer = try gpa.alloc([20]u8, hashes);
         errdefer gpa.free(buffer);
@@ -126,13 +126,13 @@ pub const TorrentFile = struct {
         return try encodeUrl(gpa, self.announce, &queries);
     }
 
-    pub fn deinit(self: *TorrentFile, gpa: *Allocator) void {
+    pub fn deinit(self: *TorrentFile, gpa: Allocator) void {
         self.state.promote(gpa).deinit();
         self.* = undefined;
     }
 
     /// Downloads the actual content and saves it to the given directory if `path` is non-null
-    pub fn download(self: *TorrentFile, gpa: *Allocator, path: ?[]const u8) !void {
+    pub fn download(self: *TorrentFile, gpa: Allocator, path: ?[]const u8) !void {
         // build our peers to connect to
         const peer_id = try generatePeerId();
         const peers = try self.getPeers(gpa, peer_id, local_port);
@@ -157,12 +157,12 @@ pub const TorrentFile = struct {
 
     /// calls the trackerURL to retrieve a list of peers and our interval
     /// of when we can obtain a new list of peers.
-    fn getPeers(self: TorrentFile, gpa: *Allocator, peer_id: [20]u8, port: u16) ![]const Peer {
+    fn getPeers(self: TorrentFile, gpa: Allocator, peer_id: [20]u8, port: u16) ![]const Peer {
         // apart from the slice of Peers we only allocate temporary data
         // therefore it's easier (and faster) to just use an arena here
         var arena = std.heap.ArenaAllocator.init(gpa);
         defer arena.deinit();
-        const ally = &arena.allocator;
+        const ally = arena.allocator();
 
         const url = try self.trackerURL(ally, peer_id, port);
 
@@ -185,7 +185,7 @@ pub const TorrentFile = struct {
 
     /// Opens a torrentfile from the given path
     /// and decodes the Bencode into a `TorrentFile`
-    pub fn open(gpa: *Allocator, path: []const u8) !TorrentFile {
+    pub fn open(gpa: Allocator, path: []const u8) !TorrentFile {
         if (!std.mem.endsWith(u8, path, ".torrent")) return error.WrongFormat;
 
         // open the file
@@ -194,11 +194,11 @@ pub const TorrentFile = struct {
 
         var arena = std.heap.ArenaAllocator.init(gpa);
 
-        var deserializer = bencode.deserializer(&arena.allocator, file.reader());
+        var deserializer = bencode.deserializer(arena.allocator(), file.reader());
         const meta = try deserializer.deserialize(TorrentMeta);
 
-        const hash = try meta.info.hash(&arena.allocator);
-        const piece_hashes = try meta.info.pieceHashes(&arena.allocator);
+        const hash = try meta.info.hash(arena.allocator());
+        const piece_hashes = try meta.info.pieceHashes(arena.allocator());
 
         const size = meta.info.length orelse blk: {
             var i: usize = 0;
@@ -236,10 +236,10 @@ fn generatePeerId() ![20]u8 {
     const lookup = "0123456789abcdefghijklmnopqrstuvwxyz";
 
     // generate next bytes
-    var bytes: [12]u8 = undefined;
+    // var bytes: [12]u8 = undefined;
     var r = std.rand.DefaultPrng.init(seed);
     for (peer_id[app_name.len..]) |*b| {
-        b.* = lookup[r.random.intRangeAtMost(u8, 0, lookup.len - 1)];
+        b.* = lookup[r.random().intRangeAtMost(u8, 0, lookup.len - 1)];
     }
 
     return peer_id;
@@ -257,7 +257,7 @@ fn encodeUrl(gpa: *Allocator, base: []const u8, queries: []const QueryParameter)
     const writer = list.writer();
     try writer.writeAll(base);
     try writer.writeByte('?');
-    for (queries) |query, i| {
+    for (queries, 0..) |query, i| {
         if (i != 0) {
             try writer.writeByte('&');
         }

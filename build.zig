@@ -1,33 +1,44 @@
 const Builder = @import("std").build.Builder;
 
 pub fn build(b: *Builder) void {
-    // Standard target options allows the person running `zig build` to choose
-    // what target to build for. Here we do not override the defaults, which
-    // means any target is allowed, and the default is native. Other options
-    // for restricting supported target set are available.
     const target = b.standardTargetOptions(.{});
+    const optimize = b.standardOptimizeOption(.{});
 
-    // Standard release options allow the person running `zig build` to select
-    // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
-    const mode = b.standardReleaseOptions();
+    const exe = b.addExecutable(.{
+        .name = "ramen",
+        .root_source_file = .{ .path = "src/main.zig" },
+        .target = target,
+        .optimize = optimize,
+    });
+    const ramen = b.createModule(.{ .source_file = .{ .path = "src/lib.zig" } });
+    exe.addModule("ramen", ramen);
 
-    const exe = b.addExecutable("ramen", "src/main.zig");
-    exe.setTarget(target);
-    exe.setBuildMode(mode);
-    exe.addPackagePath("ramen", "src/lib.zig");
-    exe.install();
+    // exe.install();
+    // const install_exe = b.addInstallArtifact(exe);
+    // b.getInstallStep().dependOn(&install_exe.step);
+    //
+    // // const run_cmd = exe.run();
+    // const run = b.addRunArtifact(exe);
+    // b.default_step.dependOn(&run.step);
+    //
+    // run.step.dependOn(b.getInstallStep());
+    // if (b.args) |args| {
+    //     run.addArgs(args);
+    // }
 
-    const run_cmd = exe.run();
+    b.installArtifact(exe);
+    const run_cmd = b.addRunArtifact(exe);
     run_cmd.step.dependOn(b.getInstallStep());
     if (b.args) |args| {
         run_cmd.addArgs(args);
     }
-
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
+    // const run_step = b.step("run", "Run the app");
+    // run_step.dependOn(&run.step);
 
-    const main_tests = b.addTest("src/lib.zig");
-    main_tests.setBuildMode(mode);
-    const test_step = b.step("test", "Run library tests");
-    test_step.dependOn(&main_tests.step);
+    // const main_tests = b.addTest("src/lib.zig");
+    // main_tests.setBuildMode(mode);
+    // const test_step = b.step("test", "Run library tests");
+    // test_step.dependOn(&main_tests.step);
 }

@@ -24,7 +24,7 @@ pub const Url = struct {
         var path: []const u8 = "/";
         var port: u16 = 80;
 
-        for (tmp) |c, i| {
+        for (tmp, 0..) |c, i| {
             if (c == ':') {
                 // TODO add support for URL's that do not end with a forward slash
                 const index = std.mem.indexOf(u8, tmp[i..], "/") orelse unreachable;

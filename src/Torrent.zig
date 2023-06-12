@@ -33,17 +33,17 @@ pub fn download(self: Torrent, gpa: Allocator, path: []const u8) !void {
 
     // Create our file with an exclusive lock, so only this process can write to it and
     // others cannot temper with it while we're in the process of downloading
-    const file = try std.fs.cwd().createFile(path, .{ .lock = .Exclusive });
+    const file = try std.fs.cwd().createFile(path, .{ .lock = .exclusive });
     defer file.close();
 
     var worker = Worker.init(gpa, &mutex, &self, &work_pieces, file);
 
     std.debug.print("Peer size: {d}\n", .{self.peers.len});
     std.debug.print("Pieces to download: {d}\n", .{work_pieces.items.len});
-    const threads = try gpa.alloc(*std.Thread, try std.Thread.cpuCount());
+    const threads = try gpa.alloc(*std.Thread, try std.Thread.getCpuCount());
     defer gpa.free(threads);
     for (threads) |*t| {
-        t.* = try std.Thread.spawn(downloadWork, &worker);
+        t.* = try std.Thread.spawn(.{}, downloadWork, &worker);
     }
 
     std.debug.print("Downloaded\t\tSize\t\t% completed\n", .{});

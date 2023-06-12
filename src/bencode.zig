@@ -52,8 +52,8 @@ pub fn Deserializer(comptime ReaderType: type) type {
                         var struct_value: T = undefined;
                         inline for (meta.fields(T)) |field| {
                             if (self.getField(field.name)) |pair| {
-                                const field_value = try pair.value.toZigType(field.field_type, gpa);
-                                @field(struct_value, field.name) = @as(field.field_type, field_value);
+                                const field_value = try pair.value.toZigType(field.type, gpa);
+                                @field(struct_value, field.name) = @as(field.type, field_value);
                             }
                         }
                         return struct_value;
@@ -245,7 +245,7 @@ pub fn Serializer(comptime WriterType: anytype) type {
             try self.writer.writeByte('d');
             inline for (meta.fields(@TypeOf(value))) |field| {
                 // make sure to not write null fields
-                if (@typeInfo(field.field_type) != .Optional or @field(value, field.name) != null) {
+                if (@typeInfo(field.type) != .Optional or @field(value, field.name) != null) {
                     try self.writer.print("{d}:{s}", .{ field.name.len, &encodeFieldName(field.name) });
                     try self.serialize(@field(value, field.name));
                 }

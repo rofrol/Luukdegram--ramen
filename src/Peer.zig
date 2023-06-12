@@ -38,7 +38,7 @@ fn toIPSlice(buffer: []u8, bytes: *const [4]u8) ![]const u8 {
     var offset: usize = 0;
 
     for (bytes, 0..) |b, i| {
-        offset += std.fmt.formatIntBuf(buffer[offset..], b, 10, false, .{});
+        offset += std.fmt.formatIntBuf(buffer[offset..], b, 10, .lower, .{});
 
         // Only add dots after a, b and c
         if (i < 3) {

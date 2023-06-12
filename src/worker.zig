@@ -28,7 +28,7 @@ pub const Worker = struct {
     /// Remaining worker slots left based on peers
     workers: usize,
     /// allocator used for the workers to allocate and free memory
-    gpa: *Allocator,
+    gpa: Allocator,
     /// the total size that has been downloaded so far
     downloaded: usize,
     /// The file we write to
@@ -36,7 +36,7 @@ pub const Worker = struct {
 
     /// Creates a new worker for the given work
     pub fn init(
-        gpa: *Allocator,
+        gpa: Allocator,
         mutex: *std.Thread.Mutex,
         torrent: *const Torrent,
         work: *std.ArrayList(Work),
@@ -101,12 +101,12 @@ pub const Work = struct {
     index: u32,
     hash: [20]u8,
     size: u32,
-    gpa: *Allocator,
+    gpa: Allocator,
     buffer: []u8,
 
     /// Initializes work and creates a buffer according to the given size,
     /// call deinit() to free its memory.
-    pub fn init(index: u32, hash: [20]u8, size: u32, gpa: *Allocator) Work {
+    pub fn init(index: u32, hash: [20]u8, size: u32, gpa: Allocator) Work {
         return .{
             .index = index,
             .hash = hash,

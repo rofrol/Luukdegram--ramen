@@ -5,6 +5,7 @@ const TorrentFile = @import("torrent_file.zig").TorrentFile;
 const Worker = @import("worker.zig").Worker;
 const Work = @import("worker.zig").Work;
 const Client = @import("net/Tcp_client.zig");
+const Allocator = std.mem.Allocator;
 
 const Torrent = @This();
 
@@ -16,7 +17,7 @@ peer_id: [20]u8,
 file: *TorrentFile,
 
 /// Downloads the torrent and writes to the given stream
-pub fn download(self: Torrent, gpa: *std.mem.Allocator, path: []const u8) !void {
+pub fn download(self: Torrent, gpa: Allocator, path: []const u8) !void {
     std.debug.print("Download started for torrent: {s}\n", .{self.file.name});
 
     var work_pieces = try std.ArrayList(Work).initCapacity(gpa, self.file.piece_hashes.len);

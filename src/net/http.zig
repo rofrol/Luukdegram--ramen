@@ -5,7 +5,7 @@ const Allocator = std.mem.Allocator;
 
 /// Sends a GET request to the given url.
 /// Returns a `Response` that contains the statuscode, headers and body.
-pub fn get(gpa: *Allocator, url: []const u8) !Response {
+pub fn get(gpa: Allocator, url: []const u8) !Response {
     const endpoint = try Url.init(url);
 
     // build our request header
@@ -37,7 +37,7 @@ pub const Response = struct {
     status_code: []const u8,
     headers: []Header,
     body: []const u8,
-    gpa: *Allocator,
+    gpa: Allocator,
 
     fn deinit(self: @This()) void {
         self.gpa.free(self.status_code);
@@ -53,7 +53,7 @@ pub const Response = struct {
 pub const HttpParser = struct {
     const Self = @This();
     state: State,
-    gpa: *Allocator,
+    gpa: Allocator,
 
     /// State of the `HttpParser`
     const State = enum {
@@ -62,7 +62,7 @@ pub const HttpParser = struct {
         body,
     };
 
-    fn init(gpa: *Allocator) Self {
+    fn init(gpa: Allocator) Self {
         return Self{ .gpa = gpa, .state = .status_code };
     }
 
@@ -104,15 +104,15 @@ pub const HttpParser = struct {
             }
         }
 
-        response.headers = headers.toOwnedSlice();
-        response.body = try std.mem.join(self.gpa, "\n", body.toOwnedSlice());
+        response.headers = try headers.toOwnedSlice();
+        response.body = try std.mem.join(self.gpa, "\n", try body.toOwnedSlice());
 
         return response;
     }
 
     /// Attempts to retrieve the statuscode from given bytes, returns an error if no statuscode is found
-    fn parseStatusCode(gpa: *Allocator, bytes: []u8) ![]const u8 {
-        var parts = std.mem.split(bytes, " ");
+    fn parseStatusCode(gpa: Allocator, bytes: []u8) ![]const u8 {
+        var parts = std.mem.split(u8, bytes, " ");
         // skip first part
         if (parts.next() == null) return ParseError.NoStatusCode;
         // copy code part into buffer
@@ -126,11 +126,11 @@ pub const HttpParser = struct {
     }
 
     /// Attempts to parse a line into a header, returns `null` if no header is found
-    fn parseHeader(allocator: *Allocator, bytes: []u8) !?Header {
+    fn parseHeader(allocator: Allocator, bytes: []u8) !?Header {
         if (bytes.len == 0 or bytes[0] == 13) return null;
         var header: Header = undefined;
         // each header is defined by "name: value"
-        var parts = std.mem.split(bytes, ": ");
+        var parts = std.mem.split(u8, bytes, ": ");
 
         if (parts.next()) |name| {
             var buf = try allocator.alloc(u8, name.len);
@@ -150,7 +150,7 @@ pub const HttpParser = struct {
     }
 
     /// Simply copies the data in an allocated buffer so we can keep a reference to it
-    fn parseData(allocator: *Allocator, bytes: []u8) ![]const u8 {
+    fn parseData(allocator: Allocator, bytes: []u8) ![]const u8 {
         var buf = try allocator.alloc(u8, bytes.len);
         std.mem.copy(u8, buf, bytes);
         return buf;

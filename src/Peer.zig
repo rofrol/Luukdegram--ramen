@@ -7,7 +7,7 @@ address: std.net.Address,
 /// Parses the provided bytes into an array of Peers
 /// Returns `error.Malformed` if the length of bytes can not be divided by 6.
 /// 4 bytes for ip, 2 for the port as we currently only support ipv4.
-pub fn listFromCompact(gpa: *std.mem.Allocator, bytes: []const u8) ![]const Peer {
+pub fn listFromCompact(gpa: std.mem.Allocator, bytes: []const u8) ![]const Peer {
     if (bytes.len % 6 != 0) return error.Malformed;
     const num_peers = bytes.len / 6;
     var peers = try std.ArrayList(Peer).initCapacity(gpa, num_peers);

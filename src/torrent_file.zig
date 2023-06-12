@@ -105,7 +105,7 @@ pub const TorrentFile = struct {
     state: std.heap.ArenaAllocator.State,
 
     /// Generates the URL to retreive tracker information
-    pub fn trackerURL(self: TorrentFile, gpa: *Allocator, peer_id: [20]u8, port: u16) ![]const u8 {
+    pub fn trackerURL(self: TorrentFile, gpa: Allocator, peer_id: [20]u8, port: u16) ![]const u8 {
         // build our query paramaters
         var buf: [4]u8 = undefined;
         const port_slice = try std.fmt.bufPrint(&buf, "{d}", .{port});
@@ -248,7 +248,7 @@ fn generatePeerId() ![20]u8 {
 /// encodes queries into a query string attached to the provided base
 /// i.e. results example.com?parm=val where `base` is example.com
 /// and `queries` is a HashMap with key "parm" and value "val".
-fn encodeUrl(gpa: *Allocator, base: []const u8, queries: []const QueryParameter) ![]const u8 {
+fn encodeUrl(gpa: Allocator, base: []const u8, queries: []const QueryParameter) ![]const u8 {
     if (queries.len == 0) return base;
 
     var list = std.ArrayList(u8).init(gpa);

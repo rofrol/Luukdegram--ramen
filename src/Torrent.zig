@@ -40,15 +40,17 @@ pub fn download(self: Torrent, gpa: Allocator, path: []const u8) !void {
 
     std.debug.print("Peer size: {d}\n", .{self.peers.len});
     std.debug.print("Pieces to download: {d}\n", .{work_pieces.items.len});
-    const threads = try gpa.alloc(*std.Thread, try std.Thread.getCpuCount());
+    const threads = try gpa.alloc(std.Thread, try std.Thread.getCpuCount());
     defer gpa.free(threads);
     for (threads) |*t| {
         t.* = try std.Thread.spawn(.{}, downloadWork, &worker);
+        // var t2 = try std.Thread.spawn(.{}, downloadWork, &worker);
+        // t.* = &t2;
     }
 
     std.debug.print("Downloaded\t\tSize\t\t% completed\n", .{});
     for (threads) |t| {
-        t.wait();
+        t.join();
     }
 
     std.debug.print("\nFinished downloading torrent", .{});

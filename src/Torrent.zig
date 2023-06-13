@@ -43,7 +43,7 @@ pub fn download(self: Torrent, gpa: Allocator, path: []const u8) !void {
     const threads = try gpa.alloc(std.Thread, try std.Thread.getCpuCount());
     defer gpa.free(threads);
     for (threads) |*t| {
-        t.* = try std.Thread.spawn(.{}, downloadWork, &worker);
+        t.* = try std.Thread.spawn(.{}, downloadWork, .{&worker});
         // var t2 = try std.Thread.spawn(.{}, downloadWork, &worker);
         // t.* = &t2;
     }
